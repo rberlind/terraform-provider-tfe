@@ -14,27 +14,32 @@ import (
 func TestAccTFETeamMembers_basic(t *testing.T) {
 	users := []*tfe.User{}
 	TFE_USER1_HASH := hashSchemaString(TFE_USER1)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			if TFE_USER1 == "" {
 				t.Skip("Please set TFE_USER1 to run this test")
 			}
+			if TFE_TEST_ORG == "" {
+				t.Skip("Please set TFE_TEST_ORG to run this test")
+			}
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckTFETeamMembersDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTFETeamMembers_basic,
+				ImportState:   true,
+				ResourceName:  "tfe_organization.foobar",
+				ImportStateId: TFE_TEST_ORG,
+				Config:        testAccTFETeamMembers_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckTFETeamMembersExists(
 						"tfe_team_members.foobar", &users),
-					testAccCheckTFETeamMembersAttributes(&users, []string{"admin", TFE_USER1}),
+					testAccCheckTFETeamMembersAttributes(&users, []string{TFE_USER1}),
 					resource.TestCheckResourceAttr(
 						"tfe_team_members.foobar", "usernames.#", "2"),
 					resource.TestCheckResourceAttr(
-						"tfe_team_members.foobar", "usernames.3672628397", "admin"),
+						"tfe_team_members.foobar", "usernames.3672628397", "lee"),
 					resource.TestCheckResourceAttr(
 						"tfe_team_members.foobar", fmt.Sprintf("usernames.%d", TFE_USER1_HASH), TFE_USER1),
 				),
@@ -57,12 +62,18 @@ func TestAccTFETeamMembers_update(t *testing.T) {
 			if TFE_USER2 == "" {
 				t.Skip("Please set TFE_USER2 to run this test")
 			}
+			if TFE_TEST_ORG == "" {
+				t.Skip("Please set TFE_TEST_ORG to run this test")
+			}
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckTFETeamMembersDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTFETeamMembers_basic,
+				ImportState:   true,
+				ResourceName:  "tfe_organization.foobar",
+				ImportStateId: TFE_TEST_ORG,
+				Config:        testAccTFETeamMembers_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckTFETeamMembersExists(
 						"tfe_team_members.foobar", &users),
@@ -81,13 +92,13 @@ func TestAccTFETeamMembers_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckTFETeamMembersExists(
 						"tfe_team_members.foobar", &users),
-					testAccCheckTFETeamMembersAttributes(&users, []string{"admin", TFE_USER2}),
+					testAccCheckTFETeamMembersAttributes(&users, []string{TFE_USER1, TFE_USER2}),
 					resource.TestCheckResourceAttr(
 						"tfe_team_members.foobar", "usernames.#", "2"),
 					resource.TestCheckResourceAttr(
 						"tfe_team_members.foobar", fmt.Sprintf("usernames.%d", TFE_USER2_HASH), TFE_USER2),
 					resource.TestCheckResourceAttr(
-						"tfe_team_members.foobar", "usernames.3672628397", "admin"),
+						"tfe_team_members.foobar", fmt.Sprintf("usernames.%d", TFE_USER1_HASH), TFE_USER1),
 				),
 			},
 		},
@@ -199,33 +210,23 @@ func testAccCheckTFETeamMembersDestroy(s *terraform.State) error {
 }
 
 var testAccTFETeamMembers_basic = fmt.Sprintf(`
-resource "tfe_organization" "foobar" {
-  name  = "tst-terraform"
-  email = "admin@company.com"
-}
-
 resource "tfe_team" "foobar" {
   name         = "team-test"
-  organization = "${tfe_organization.foobar.id}"
+  organization = "%s"
 }
 
 resource "tfe_team_members" "foobar" {
   team_id   = "${tfe_team.foobar.id}"
   usernames = ["%s"]
-}`, TFE_USER1)
+}`, TFE_TEST_ORG, TFE_USER1)
 
 var testAccTFETeamMembers_update = fmt.Sprintf(`
-resource "tfe_organization" "foobar" {
-  name  = "tst-terraform"
-  email = "admin@company.com"
-}
-
 resource "tfe_team" "foobar" {
   name         = "team-test"
-  organization = "${tfe_organization.foobar.id}"
+  organization = "%s"
 }
 
 resource "tfe_team_members" "foobar" {
   team_id   = "${tfe_team.foobar.id}"
   usernames = ["%s", "%s"]
-}`, TFE_USER1, TFE_USER2)
+}`, TFE_TEST_ORG, TFE_USER1, TFE_USER2)
