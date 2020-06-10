@@ -1,4 +1,5 @@
 package uuid
+// FOOO!!!
 
 import (
 	"crypto/rand"
