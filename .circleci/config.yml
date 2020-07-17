@@ -49,8 +49,6 @@ jobs:
     steps:
       - setup_remote_docker
       - checkout
-      - run: GO111MODULE=on go get -v -t -d ./...
-      - run: make test
       - run: make vet
       - run: make website-test
 
