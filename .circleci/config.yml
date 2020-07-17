@@ -6,7 +6,7 @@ version: 2
 test_results_dir: &test_results_dir /tmp/test_results
 
 jobs:
-  run-tests:
+  go-test:
     docker:
       - image: circleci/golang:1.11.13
         environment:
@@ -15,9 +15,10 @@ jobs:
     working_directory: /go/src/github.com/terraform-providers/terraform-provider-tfe
 
     steps:
+      - setup_remote_docker
       - checkout
       
-      - run: go get -v -t -d ./...
+      - run: GO111MODULE=on go get -v -t -d ./...
       
       - run:
           name: Make test results directory
@@ -39,9 +40,26 @@ jobs:
       - store_test_results:
           path: *test_results_dir
 
+  make-scripts:
+    docker:
+      - image: circleci/golang:1.11.13
+
+    working_directory: /go/src/github.com/terraform-providers/terraform-provider-tfe
+    
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run: GO111MODULE=on go get -v -t -d ./...
+      - run: make test
+      - run: make vet
+      - run: make website-test
+
 workflows:
   version: 2
   build-and-test:
     jobs:
-      - run-tests:
+      - go-test:
           context: terraform-provider-tfe build access
+      - make-scripts:
+          context: terraform-provider-tfe build access
+          # the make targets don't necessarily need to be permission-limited, but the project-level env vars do
