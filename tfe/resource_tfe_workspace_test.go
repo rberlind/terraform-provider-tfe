@@ -547,6 +547,83 @@ func TestAccTFEWorkspace_importVCSBranch(t *testing.T) {
 	})
 }
 
+func TestAccTFEWorkspace_operationsAndExecutionModeInteroperability(t *testing.T) {
+	workspace := &tfe.Workspace{}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckTFEWorkspaceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccTFEWorkspace_operationsTrue,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckTFEWorkspaceExists(
+						"tfe_workspace.foobar", workspace),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "operations", "true"),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "execution_mode", "remote"),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "agent_pool_id", ""),
+				),
+			},
+			{
+				Config: testAccTFEWorkspace_executionModeLocal,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckTFEWorkspaceExists(
+						"tfe_workspace.foobar", workspace),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "operations", "false"),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "execution_mode", "local"),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "agent_pool_id", ""),
+				),
+			},
+			{
+				Config: testAccTFEWorkspace_operationsFalse,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckTFEWorkspaceExists(
+						"tfe_workspace.foobar", workspace),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "operations", "false"),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "execution_mode", "local"),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "agent_pool_id", ""),
+				),
+			},
+			{
+				Config: testAccTFEWorkspace_executionModeRemote,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckTFEWorkspaceExists(
+						"tfe_workspace.foobar", workspace),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "operations", "true"),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "execution_mode", "remote"),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "agent_pool_id", ""),
+				),
+			},
+			{
+				Config: testAccTFEWorkspace_executionModeAgent,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckTFEWorkspaceExists(
+						"tfe_workspace.foobar", workspace),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "operations", "true"),
+					resource.TestCheckResourceAttr(
+						"tfe_workspace.foobar", "execution_mode", "agent"),
+					resource.TestCheckResourceAttrSet(
+						"tfe_workspace.foobar", "agent_pool_id"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckTFEWorkspaceExists(
 	n string, workspace *tfe.Workspace) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -623,6 +700,10 @@ func testAccCheckTFEWorkspaceAttributes(
 
 		if workspace.Operations != true {
 			return fmt.Errorf("Bad operations: %t", workspace.Operations)
+		}
+
+		if workspace.ExecutionMode != "remote" {
+			return fmt.Errorf("Bad execution mode: %s", workspace.ExecutionMode)
 		}
 
 		if workspace.QueueAllRuns != true {
@@ -705,6 +786,10 @@ func testAccCheckTFEWorkspaceAttributesUpdated(
 
 		if workspace.Operations != false {
 			return fmt.Errorf("Bad operations: %t", workspace.Operations)
+		}
+
+		if workspace.ExecutionMode != "local" {
+			return fmt.Errorf("Bad execution mode: %s", workspace.ExecutionMode)
 		}
 
 		if workspace.QueueAllRuns != false {
@@ -864,6 +949,72 @@ resource "tfe_workspace" "foobar" {
   name         = "workspace-test"
   organization = "${tfe_organization.foobar.id}"
   auto_apply   = true
+}`
+
+const testAccTFEWorkspace_operationsTrue = `
+resource "tfe_organization" "foobar" {
+  name  = "tst-terraform"
+  email = "admin@company.com"
+}
+
+resource "tfe_workspace" "foobar" {
+  name         = "workspace-test"
+  organization = "${tfe_organization.foobar.id}"
+  operations = true
+}`
+
+const testAccTFEWorkspace_operationsFalse = `
+resource "tfe_organization" "foobar" {
+  name  = "tst-terraform"
+  email = "admin@company.com"
+}
+
+resource "tfe_workspace" "foobar" {
+  name         = "workspace-test"
+  organization = "${tfe_organization.foobar.id}"
+  operations = false
+}`
+
+const testAccTFEWorkspace_executionModeRemote = `
+resource "tfe_organization" "foobar" {
+  name  = "tst-terraform"
+  email = "admin@company.com"
+}
+
+resource "tfe_workspace" "foobar" {
+  name         = "workspace-test"
+  organization = "${tfe_organization.foobar.id}"
+  execution_mode = "remote"
+}`
+
+const testAccTFEWorkspace_executionModeLocal = `
+resource "tfe_organization" "foobar" {
+  name  = "tst-terraform"
+  email = "admin@company.com"
+}
+
+resource "tfe_workspace" "foobar" {
+  name         = "workspace-test"
+  organization = "${tfe_organization.foobar.id}"
+  execution_mode = "local"
+}`
+
+const testAccTFEWorkspace_executionModeAgent = `
+resource "tfe_organization" "foobar" {
+  name  = "tst-terraform"
+  email = "admin@company.com"
+}
+
+resource "tfe_agent_pool" "foobar" {
+  name = "agent-pool-test"
+  organization = "${tfe_organization.foobar.name}"
+}
+
+resource "tfe_workspace" "foobar" {
+  name         = "workspace-test"
+  organization = "${tfe_organization.foobar.id}"
+  execution_mode = "agent"
+  agent_pool_id = "${tfe_agent_pool.foobar.id}"
 }`
 
 const testAccTFEWorkspace_basicFileTriggersOff = `
