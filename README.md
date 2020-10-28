@@ -58,19 +58,13 @@ in your operating environment, or you're looking to contribute to the provider a
 
 #### Requirements
 -	[Terraform](https://www.terraform.io/downloads.html) >= 0.11.x
--	[Go](https://golang.org/doc/install) >= 1.11
+-	[Go](https://golang.org/doc/install) >= 1.15
 
-Clone the repository in your `$GOPATH`:
+Clone the repository, enter the directory, and build the provider:
 
 ```sh
-$ mkdir -p $GOPATH/src/github.com/hashicorp; cd $GOPATH/src/github.com/hashicorp
 $ git clone git@github.com:hashicorp/terraform-provider-tfe
-```
-
-Enter the provider directory and build the provider:
-
-```sh
-$ cd $GOPATH/src/github.com/hashicorp/terraform-provider-tfe
+$ cd terraform-provider-tfe
 $ make build
 ```
 
